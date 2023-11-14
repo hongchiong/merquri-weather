@@ -58,7 +58,7 @@ function App() {
           </div>
         </div>
 
-        <div className='history-container' key={JSON.stringify(weatherHistory)}>
+        <div className='history-container'>
           <h2>Search History</h2>
           {Object.keys(weatherHistory)
             .reverse()
