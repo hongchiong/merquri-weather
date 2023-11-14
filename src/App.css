@@ -5,13 +5,13 @@
   background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
   gap: 6rem;
   color: #fff;
   font-size: 16px;
   height: max-content;
   padding: 2rem;
+  min-height: 100vh;
 }
 
 .input-container {
