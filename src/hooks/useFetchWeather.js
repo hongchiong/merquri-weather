@@ -1,42 +1,72 @@
+import moment from 'moment';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
 const saveWeatherHistory = (weatherData) => {
   const timestamp = Date.now();
   const history =
-    JSON.parse(localStorage.getItem('merq-weather-history')) || [];
+    JSON.parse(localStorage.getItem('merq-weather-history')) || {};
 
-  const obj = {};
-  obj[timestamp] = weatherData;
-  history.unshift(obj);
+  history[timestamp] = weatherData;
 
   localStorage.setItem('merq-weather-history', JSON.stringify(history));
 };
 
 const formatResponse = (json) => {
+  const timestamp = Date.now();
+  const date = moment(parseInt(timestamp)).format('D-M-YYYY hh:mma');
   return {
-    name: `${json.name}, ${json.sys.country}`,
-    weather: json.weather[0].main,
-    temp: json.main.temp,
-    temp_min: json.main.temp_min,
-    temp_max: json.main.temp_max,
-    humidity: json.main.humidity,
+    resultForDisplay: {
+      name: `${json.name}, ${json.sys.country}`,
+      weather: json.weather[0].main,
+      temp: json.main.temp,
+      temp_min: json.main.temp_min,
+      temp_max: json.main.temp_max,
+      humidity: json.main.humidity,
+      date: date,
+      icon: json.weather[0].icon,
+    },
+    resultForHistory: {
+      name: `${json.name}, ${json.sys.country}`,
+      date: date,
+    },
   };
 };
 
 export const useFetchWeather = () => {
   const [weather, setWeather] = useState({});
-  const [isFetching, setIsFetching] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [weatherHistory, setWeatherHistory] = useState(
+    JSON.parse(localStorage.getItem('merq-weather-history')) || {}
+  );
 
-  const weatherHistory =
-    JSON.parse(localStorage.getItem('merq-weather-history')) || [];
+  const saveWeatherHistory = (weatherData) => {
+    const timestamp = Date.now();
+    const history =
+      JSON.parse(localStorage.getItem('merq-weather-history')) || {};
+
+    history[timestamp] = weatherData;
+
+    localStorage.setItem('merq-weather-history', JSON.stringify(history));
+    setWeatherHistory({ ...history });
+  };
+
+  const deleteWeatherHistory = (timestampKey) => {
+    delete weatherHistory[parseInt(timestampKey)];
+
+    localStorage.setItem(
+      'merq-weather-history',
+      JSON.stringify(weatherHistory)
+    );
+    setWeatherHistory({ ...weatherHistory });
+  };
 
   const fetchWeather = async (country, firstLoad = false) => {
     if (!country) {
       toast.error('Plese enter a valid country');
       return;
     }
-    setIsFetching(true);
+    setIsLoading(true);
     const url = `https://api.openweathermap.org/data/2.5/weather?q=${country}&appid=${process.env.REACT_APP_OPEN_WEATHER_API_KEY}&units=metric
       `;
 
@@ -55,9 +85,9 @@ export const useFetchWeather = () => {
         closeOnClick: true,
       });
     } else {
-      const result = formatResponse(json);
-      if (!firstLoad) saveWeatherHistory(result);
-      setWeather(result);
+      const { resultForDisplay, resultForHistory } = formatResponse(json);
+      if (!firstLoad) saveWeatherHistory(resultForHistory);
+      setWeather(resultForDisplay);
 
       toast.update(toastId, {
         render: `${country}'s weather fetched successful 👌`,
@@ -68,12 +98,18 @@ export const useFetchWeather = () => {
       });
     }
 
-    setIsFetching(false);
+    setIsLoading(false);
   };
 
   useEffect(() => {
     fetchWeather('Singapore', true);
   }, []);
 
-  return { weather, fetchWeather, isFetching, weatherHistory };
+  return {
+    weather,
+    fetchWeather,
+    isLoading,
+    weatherHistory,
+    deleteWeatherHistory,
+  };
 };
